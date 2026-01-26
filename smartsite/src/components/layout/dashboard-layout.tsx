@@ -118,24 +118,8 @@ export function DashboardLayout({ children, stats }: DashboardLayoutProps) {
                         </div>
                     )}
 
-                    {/* Right: Stats and User */}
+                    {/* Right: User Info */}
                     <div className="flex items-center gap-4">
-                        {stats && (
-                            <div className="hidden sm:flex items-center gap-3">
-                                <div className="text-right">
-                                    <p className="text-xs text-gray-500">Active Workers</p>
-                                    <p className="text-lg font-bold text-white">{stats.totalActiveWorkers}</p>
-                                </div>
-                                <div className="flex gap-1">
-                                    <Badge variant="destructive" className="text-xs">
-                                        {stats.highRiskCount} High
-                                    </Badge>
-                                    <Badge variant="secondary" className="text-xs bg-gray-800 text-gray-300">
-                                        {stats.mediumRiskCount} Med
-                                    </Badge>
-                                </div>
-                            </div>
-                        )}
 
                         {user && (
                             <div className="flex items-center gap-2">
