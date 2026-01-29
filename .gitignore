@@ -25,3 +25,7 @@ out/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local Data
+*.db
+worker_test.json
