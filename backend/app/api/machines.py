@@ -351,25 +351,51 @@ def generate_comprehensive_telemetry(profile: dict, current_values: dict = None,
     
     # Helper for incremental or random generation with optional targeting
     def get_value(key: str, default: float, delta_range: tuple, clamp_range: tuple = None) -> float:
-        # If target_state is set, use its range as the attractor or default
-        effective_default = default
+        # Determine target bounds for convergence
+        target_bounds = None
+        
+        # Case 1: Normalized Performance Metrics (Explicit target ranges defined above)
         if target_range and key.endswith("_norm"):
-            effective_default = target_range["norm"]
-        elif target_range and "temperature" in key:
-             # Temp needs careful handling below
-             pass
+             target_bounds = target_range["norm"]
+        
+        # Case 2: Temperature (Calculated effective range passed as default)
+        elif target_range and "temperature" in key and isinstance(default, tuple):
+             target_bounds = default
 
-        # STRICT MODE: If target_state is specified for this key, IGNORE history and force value into range.
-        if target_range and key.endswith("_norm"):
-             value = random.uniform(*target_range["norm"])
-        elif is_incremental and key in current_values:
-            delta = random.uniform(*delta_range)
-            value = current_values[key] + delta
+        # Logic
+        if is_incremental and key in current_values and current_values[key] is not None:
+            curr = float(current_values[key])
+            
+            if target_bounds:
+                # We have a specific target state to converge towards
+                center = sum(target_bounds) / 2
+                
+                # Check if we are "in zone" (within the bounds)
+                if target_bounds[0] <= curr <= target_bounds[1]:
+                    # In Zone: Small gentle fluctuations ("small changes")
+                    # Use reduced delta range (30% of original volatility)
+                    small_delta = random.uniform(delta_range[0]*0.3, delta_range[1]*0.3)
+                    value = curr + small_delta
+                    
+                    # Soft clamp to keep it mostly inside bounds
+                    value = max(target_bounds[0], min(target_bounds[1], value))
+                else:
+                    # Out of Zone: MAJOR JUMP (Immediate State Change)
+                    # User wants to see instantaneous shift to the major change zone
+                    value = random.uniform(*target_bounds)
+            else:
+                # No target, independent drift (e.g. Hours, Fuel)
+                delta = random.uniform(*delta_range)
+                value = curr + delta
         else:
-            value = effective_default if isinstance(effective_default, (int, float)) else random.uniform(*effective_default)
+             # Initial Generation (or missing history)
+             if target_bounds:
+                 value = random.uniform(*target_bounds)
+             else:
+                 value = default if isinstance(default, (int, float)) else random.uniform(*default)
         
         if clamp_range:
-            value = max(clamp_range[0], min(clamp_range[1], value))
+             value = max(clamp_range[0], min(clamp_range[1], value))
         return value
     
     # ===== OPERATIONAL INTENSITY =====

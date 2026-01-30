@@ -98,7 +98,10 @@ export default function DashboardPage() {
             return; // Stop simulation if mode is null
         }
 
+        let isActive = true;
+
         const simulateAndRefresh = async () => {
+            if (!isActive) return;
             try {
                 let url = `${API_BASE_URL}/api/workers/simulate-all?target_state=${simulationMode}`;
                 if (esp32Url.trim()) {
@@ -108,7 +111,7 @@ export default function DashboardPage() {
                 const response = await fetch(url, { method: "POST" });
                 const data = await response.json();
 
-                if (data.workers) {
+                if (isActive && data.workers) {
                     const transformed = data.workers.map(transformWorkerResponse);
                     setWorkers(transformed);
 
@@ -126,9 +129,18 @@ export default function DashboardPage() {
             }
         };
 
-        simulateAndRefresh(); // Immediate call
-        const interval = setInterval(simulateAndRefresh, 2500);
-        return () => clearInterval(interval);
+        const loop = async () => {
+            if (!isActive) return;
+            await simulateAndRefresh();
+            if (isActive) {
+                // Schedule next iteration only after completion (Adaptive interval)
+                setTimeout(loop, 2500);
+            }
+        };
+
+        loop();
+
+        return () => { isActive = false; };
     }, [simulationMode, esp32Url]);
 
     const handleCardClick = (worker: WorkerVitals) => {
